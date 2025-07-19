@@ -89,7 +89,6 @@ class PDFMarketParser:
         raw_major_events_df = tables[0].df
         major_events_df = raw_major_events_df
 
-        # Find column with desired columns:
         header_row_idx = None
         for idx, row in raw_major_events_df.iterrows():
             matches = sum(
@@ -130,10 +129,10 @@ class PDFMarketParser:
         major_events_df.name = "Major Events".lower().replace(" ", "_").replace("(", "").replace(")", "")
         self._current_processed_dfs.append(major_events_df)
 
-    def consolidate_and_extract_top_bottom_markets(self, output_path: str):
+    def consolidate_and_export_top_bottom_markets(self, output_path: str):
         """
         For the 5 Market tables we extracted, we add a new column indicating the Market Type (the name of the table)
-        and we rename the main column to Market, to be able to concatenate them
+        and we rename the main column to Market, to be able to concatenate them and find top and bottom performer in the last 12M
         """
         if not self._current_processed_dfs:
             raise ValueError("No processed dataframes available to consolidate.")
@@ -158,16 +157,26 @@ class PDFMarketParser:
             df["Market Type"] = market_type_name
             df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
             dfs.append(df)
-            print(df)
-            print("\n")
-
-        # TODO: Ensure that its len is 5!
 
         consolidated_df = pd.concat(dfs)
         consolidated_df = consolidated_df.drop(["Price", "Yield (%)", "OAS (bp)"], axis=1)
         consolidated_df.to_csv(f"{output_path}/performance_metrics.csv", index=False)
 
-        # TODO: Work on getting top and bottom 3 according to 12M
+        if '12M' not in consolidated_df.columns:
+            raise ValueError("12M column not found in consolidated performance metrics data")
+
+        consolidated_df['12M'] = pd.to_numeric(consolidated_df['12M'], errors='coerce')
+        valid_data = consolidated_df.dropna(subset=['12M'])
+
+        if len(valid_data) < 6:
+            raise Exception(f"Only {len(valid_data)} valid entries found. Not have enough data for top 3 and bottom 3.")
+        sorted_df = valid_data.sort_values('12M', ascending=False)
+
+        top_3_df = sorted_df.head(3).copy()
+        bottom_3_df = sorted_df.tail(3).copy()
+        
+        top_3_df.to_csv(f"{output_path}/top_3_markets_12M.csv", index=False)
+        bottom_3_df.to_csv(f"{output_path}/bottom_3_markets_12M.csv", index=False)
 
     def export_dfs_to_csv(self, output_path: str):
         """
@@ -186,7 +195,6 @@ class PDFMarketParser:
             df.to_csv(file_path, index=False)
             logger.info(f"Exported dataframe '{df.name}' to '{file_path}'")
         logger.info(f"Exported {len(self._current_processed_dfs)} dataframes to {output_path}")
-
 
     def display_summary(self):
         """
