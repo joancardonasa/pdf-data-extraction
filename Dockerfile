@@ -1,9 +1,12 @@
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apk add --no-cache build-base libffi-dev && \
-    mkdir tmp
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        libffi-dev
 
 COPY requirements.txt requirements.txt
 

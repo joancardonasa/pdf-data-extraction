@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import camelot
 import logging
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -178,10 +179,11 @@ class PDFMarketParser:
         top_3_df.to_csv(f"{output_path}/top_3_markets_12M.csv", index=False)
         bottom_3_df.to_csv(f"{output_path}/bottom_3_markets_12M.csv", index=False)
 
-    def export_dfs_to_csv(self, output_path: str):
+    async def export_dfs_to_csv(self, output_path: str) -> List:
         """
         Export the stored processed dataframes to CSV.
         """
+        output_paths = []
         if not self._current_processed_dfs:
             logger.warning("No processed dataframes to export.")
             return
@@ -192,9 +194,11 @@ class PDFMarketParser:
 
         for df in self._current_processed_dfs:
             file_path = f"{output_path}/{df.name}.csv"
+            output_paths.append(file_path)
             df.to_csv(file_path, index=False)
             logger.info(f"Exported dataframe '{df.name}' to '{file_path}'")
         logger.info(f"Exported {len(self._current_processed_dfs)} dataframes to {output_path}")
+        return output_paths
 
     def display_summary(self):
         """
