@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import camelot
 import logging
 
@@ -7,11 +8,7 @@ logger = logging.getLogger(__name__)
 
 class PDFMarketParser:
     MARKETS_AT_A_GLANCE_TITLES = [
-        "Equities",
-        "Rates (government bonds)",
-        "Credit",
-        "Commodities",
-        "Exchange rates"
+        "Equities", "Rates (government bonds)", "Credit", "Commodities", "Exchange rates"
     ]
     CLEAN_MAAG_TABLE_TITLES = [
         name.lower().replace(" ", "_").replace("(", "").replace(")", "") for name in MARKETS_AT_A_GLANCE_TITLES
@@ -20,6 +17,10 @@ class PDFMarketParser:
     MARKETS_AT_A_GLANCE_NUMERIC_COLS = [
         "1M", "3M", "6M", "12M", "YTD", "QTD",
         "Price", "Yield (%)", "QAS (bp)"
+    ]
+
+    MAJOR_EVENTS_COLS = [
+        "Date", "Time", "Country", "Indicator/Event", "Period", "UniCredit Estimates", "Consensus (Bloomberg)", "Previous"
     ]
 
     def __init__(self, pdf_path: str, year: int = 2025):
@@ -77,6 +78,58 @@ class PDFMarketParser:
             df.name = name.lower().replace(" ", "_").replace("(", "").replace(")", "")
             self._current_processed_dfs.append(df)
 
+    def parse_major_events_next_week(self, page: int = 3) -> None:
+        # Tolerance values are VERY finnicky. The whole process can break very easily with small layout
+        # changes in the source pdf docs.
+        tables = camelot.read_pdf(self.pdf_path, pages=str(page), flavor="stream", row_tol=11)
+
+        if tables.n != 1:
+            raise Exception(f"Unexpected number of tables found: {tables.n}")
+
+        raw_major_events_df = tables[0].df
+        major_events_df = raw_major_events_df
+
+        # Find column with desired columns:
+        header_row_idx = None
+        for idx, row in raw_major_events_df.iterrows():
+            matches = sum(
+                any(str(cell).lower().strip().find(h.lower()) != -1 for cell in row)
+                for h in self.MAJOR_EVENTS_COLS
+            )
+            if matches >= 5:
+                header_row_idx = idx
+                break
+
+        if header_row_idx is not None:
+            major_events_df.columns = major_events_df.iloc[header_row_idx]
+            # Delete rows until header row
+            major_events_df = major_events_df.iloc[header_row_idx+1:].reset_index(drop=True)
+            major_events_df.columns = self.MAJOR_EVENTS_COLS
+        else:
+            raise RuntimeError(f"Could not find header row in page {page}!")
+
+        # Cleanup:
+        major_events_df["Date"] = major_events_df["Date"].replace("", np.nan)
+        major_events_df["Date"] = pd.to_datetime(
+            major_events_df["Date"], 
+            format="%a, %d %b", 
+            errors="coerce"
+        )
+        major_events_df["Date"] = major_events_df["Date"].apply(lambda dt: dt.replace(year=2025) if pd.notnull(dt) else dt)
+        major_events_df["Date"] = major_events_df["Date"].ffill()
+
+        # Ensure numeric columns are numeric:
+        cols_to_convert = ["UniCredit Estimates", "Consensus (Bloomberg)", "Previous"]
+        major_events_df[cols_to_convert] = major_events_df[cols_to_convert].apply(
+            pd.to_numeric, errors="coerce"
+        )
+
+        # We ensure we don't keep any null/empty values in the Indicator/Event column
+        major_events_df = major_events_df[major_events_df['Indicator/Event'].str.strip() != ''].reset_index(drop=True)
+
+        major_events_df.name = "Major Events".lower().replace(" ", "_").replace("(", "").replace(")", "")
+        self._current_processed_dfs.append(major_events_df)
+
     def export_dfs_to_csv(self, output_path: str):
         """
         Export the stored processed dataframes to CSV.
@@ -94,6 +147,7 @@ class PDFMarketParser:
             df.to_csv(file_path, index=False)
             logger.info(f"Exported dataframe '{df.name}' to '{file_path}'")
         logger.info(f"Exported {len(self._current_processed_dfs)} dataframes to {output_path}")
+
 
     def display_summary(self):
         """

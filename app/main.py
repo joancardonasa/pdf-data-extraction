@@ -17,6 +17,7 @@ def main():
         year=2025
     )
     parser.parse_markets_at_a_glance()
+    parser.parse_major_events_next_week()
     parser.export_dfs_to_csv(OUTPUT_PATH)
     parser.display_summary()
 
