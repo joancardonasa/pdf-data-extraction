@@ -197,6 +197,44 @@ def store_exchange_rates(session: Session, parser: PDFMarketParser, df_name: str
 
     session.commit()
 
+def store_major_events(session: Session, parser: PDFMarketParser, df_name: str='major_events'):
+    if df_name not in parser._current_processed_dfs.keys():
+        return
+    df = parser._current_processed_dfs[df_name]
+    for _, row in df.iterrows():
+        week_start = get_week_start(datetime.now())
+
+        # We define "uniqueness" per country AND indicator
+        existing = session.query(MajorEvents).filter(
+            MajorEvents.country == row['Country'],
+            MajorEvents.indicator_event == row['Indicator/Event'],
+            MajorEvents.week == week_start
+        ).one_or_none()
+
+        if existing:
+            existing.date = row['Date']
+            existing.time = row['Time']
+            existing.country = row['Country']
+            existing.period = row['Period']
+            existing.unicredit_estimates = row['UniCredit Estimates']
+            existing.consensus_bloomberg = row['Consensus (Bloomberg)']
+            existing.previous = row['Previous']
+        else:
+            new_record = MajorEvents(
+                date=row['Date'],
+                time=row['Time'],
+                country=row['Country'],
+                indicator_event=row['Indicator/Event'],
+                period=row['Period'],
+                unicredit_estimates=row['UniCredit Estimates'],
+                consensus_bloomberg=row['Consensus (Bloomberg)'],
+                previous=row['Previous'],
+                week=week_start
+            )
+            session.add(new_record)
+
+    session.commit()
+
 def get_week_start(date: datetime) -> datetime:
     week_start = date - timedelta(days=date.weekday())
     return week_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -220,6 +258,8 @@ def main():
     store_credit(db, parser)
     store_commodities(db, parser)
     store_exchange_rates(db, parser)
+
+    store_major_events(db, parser)
     db.close()
 
 if __name__ == "__main__":
