@@ -207,5 +207,5 @@ class PDFMarketParser:
             logger.warning("No processed dataframes to display.")
             return
 
-        for df in self._current_processed_dfs:
+        for df in self._current_processed_dfs.values():
             logger.info(f"{df.name}: {len(df)} rows")
