@@ -36,7 +36,7 @@ def upgrade() -> None:
     op.create_table('credit',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('credit', sa.String(), nullable=False),
-    sa.Column('qas_bp', sa.Float(), nullable=True),
+    sa.Column('oas_bp', sa.Float(), nullable=True),
     sa.Column('m1', sa.Float(), nullable=True),
     sa.Column('m3', sa.Float(), nullable=True),
     sa.Column('m6', sa.Float(), nullable=True),

@@ -38,7 +38,7 @@ class Credit(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     credit = Column(String, nullable=False)
-    qas_bp = Column(Float, nullable=True)
+    oas_bp = Column(Float, nullable=True)
     m1 = Column(Float, nullable=True)
     m3 = Column(Float, nullable=True)
     m6 = Column(Float, nullable=True)
