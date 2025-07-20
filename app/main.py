@@ -18,8 +18,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-OUTPUT_PATH = "data/output"
-INPUT_PATH = "data/input"
+OUTPUT_PATH = "/data/output"
+INPUT_PATH = "/data/input"
 PDF_PATH = f"{INPUT_PATH}/241025 Unicredit Macro & Markets Weekly Focus - python.pdf"
 
 

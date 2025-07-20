@@ -9,8 +9,7 @@ from models import Base, Equities, Rates, Credit, Commodities, ExchangeRates, Ma
 
 logger = logging.getLogger(__name__)
 
-# Here we have to connect to localhost rather than db as it's outside the docker container
-DATABASE_URL = "postgresql://user:pass@localhost:5432/markets_weekly"
+DATABASE_URL = "postgresql://user:pass@db:5432/markets_weekly"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
