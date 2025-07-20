@@ -49,7 +49,7 @@ def test_current_processed_dfs_grows_by_one_with_parses(parser):
 def test_export_writes_csv_files(parser):
     df = MagicMock()
     df.name = "table1"
-    parser._current_processed_dfs = [df]
+    parser._current_processed_dfs = {"table1": df}
     with patch("app.pdf_tables_parser.logger"):
         parser.export_dfs_to_csv("/tmp/output")
     df.to_csv.assert_called_once_with("/tmp/output/table1.csv", index=False)
@@ -57,7 +57,7 @@ def test_export_writes_csv_files(parser):
 def test_export_raises_value_error_on_empty_output_path(parser):
     df = MagicMock()
     df.name = "table1"
-    parser._current_processed_dfs = [df]
+    parser._current_processed_dfs = {"table1": df}
     with patch("app.pdf_tables_parser.logger"):
         with pytest.raises(ValueError):
             parser.export_dfs_to_csv("")

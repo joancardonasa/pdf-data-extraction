@@ -26,7 +26,7 @@ PDF_PATH = f"{INPUT_PATH}/241025 Unicredit Macro & Markets Weekly Focus - python
 app = FastAPI(title="PDF Processing API", version="1.0.0")
 
 @app.get("/health")
-async def health_check():
+def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "message": "PDF Processing API is running"}
 
@@ -65,7 +65,7 @@ async def process_pdf(
         # Process the PDF and generate files
         parser.parse_markets_at_a_glance(markets_at_a_glance_page)
         parser.parse_major_events_next_week(major_events_page)
-        generated_files = await parser.export_dfs_to_csv(temp_dir)
+        generated_files = parser.export_dfs_to_csv(temp_dir)
 
         if not generated_files:
             raise HTTPException(status_code=500, detail="No files were generated during processing")

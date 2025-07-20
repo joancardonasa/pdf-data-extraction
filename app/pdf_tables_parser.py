@@ -27,7 +27,7 @@ class PDFMarketParser:
     def __init__(self, pdf_path: str, year: int = 2025):
         self.pdf_path = pdf_path
         self.year = year
-        self._current_processed_dfs = []
+        self._current_processed_dfs: dict[str, pd.DataFrame] = {}
 
     def parse_markets_at_a_glance(self, page: int = 2) -> None:
         """
@@ -74,10 +74,9 @@ class PDFMarketParser:
 
             cleaned_dfs.append(df)
 
-        self._current_processed_dfs = []
         for df, name in zip(cleaned_dfs, self.CLEAN_MAAG_TABLE_TITLES):
             df.name = name.lower().replace(" ", "_").replace("(", "").replace(")", "")
-            self._current_processed_dfs.append(df)
+            self._current_processed_dfs[df.name] = df
 
     def parse_major_events_next_week(self, page: int = 3) -> None:
         # Tolerance values are VERY finnicky. The whole process can break very easily with small layout
@@ -128,7 +127,7 @@ class PDFMarketParser:
         major_events_df = major_events_df[major_events_df['Indicator/Event'].str.strip() != ''].reset_index(drop=True)
 
         major_events_df.name = "Major Events".lower().replace(" ", "_").replace("(", "").replace(")", "")
-        self._current_processed_dfs.append(major_events_df)
+        self._current_processed_dfs[major_events_df.name] = major_events_df
 
     def consolidate_and_export_top_bottom_markets(self, output_path: str):
         """
@@ -139,7 +138,7 @@ class PDFMarketParser:
             raise ValueError("No processed dataframes available to consolidate.")
 
         expected_names = set(self.CLEAN_MAAG_TABLE_TITLES)
-        actual_names = set(df.name for df in self._current_processed_dfs)
+        actual_names = set(df.name for df in self._current_processed_dfs.values())
 
         if not expected_names.issubset(actual_names):
             raise ValueError(f"Processed DataFrames names {actual_names} do not match expected {expected_names}")
@@ -153,7 +152,7 @@ class PDFMarketParser:
         }
 
         dfs = []
-        for df, market_type_name in zip(self._current_processed_dfs, self.MARKETS_AT_A_GLANCE_TITLES):
+        for df, market_type_name in zip(self._current_processed_dfs.values(), self.MARKETS_AT_A_GLANCE_TITLES):
             df = df.copy()
             df["Market Type"] = market_type_name
             df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
@@ -179,7 +178,7 @@ class PDFMarketParser:
         top_3_df.to_csv(f"{output_path}/top_3_markets_12M.csv", index=False)
         bottom_3_df.to_csv(f"{output_path}/bottom_3_markets_12M.csv", index=False)
 
-    async def export_dfs_to_csv(self, output_path: str) -> List:
+    def export_dfs_to_csv(self, output_path: str) -> List:
         """
         Export the stored processed dataframes to CSV.
         """
@@ -192,7 +191,7 @@ class PDFMarketParser:
             logger.error("Not a valid output path provided.")
             raise ValueError("Output path must not be empty.")
 
-        for df in self._current_processed_dfs:
+        for df in self._current_processed_dfs.values():
             file_path = f"{output_path}/{df.name}.csv"
             output_paths.append(file_path)
             df.to_csv(file_path, index=False)
