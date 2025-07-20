@@ -53,8 +53,8 @@ Setting up the database and the Docker container was comparatively easier to thi
 
 ## Thoughts
 
-I managed to find a couple of PDFs from other weeks (found in the `data/input` folder), and while they are is similar to the one provided in the test from October (though some tables are slightly different sizes), it's clear that this document can change at any moment, which makes the whole implementation very frail and prone to fail. 
+I managed to find a couple of PDFs from other weeks (found in the `data/input` folder), and while they are similar to the one provided in the test from October (though some tables are slightly different sizes), it's clear that this document can change at any moment, which makes the whole implementation very frail and prone to break.
 
-As a matter of fact, while the document from September 2024 can be uploaded to the API to get the zipped folder with the CSVs, the one from December 2023 fails in the parsing step, which means each of these PDFs would need close, manual inspection.
+As a matter of fact, while the document from September 2024 can be uploaded to the API to get the zipped folder with the CSVs, the one from December 2023 fails in the parsing step, which means each of these PDFs would need close, manual inspection to check the formatting.
 
 Ideally, work would need to be done to investigate other potential, more stable sources for this data to avoid manual work to extract the data each week. If it were absolutely necessary to maintain this source, I would dedicate a lot of time to reduce the pain points of extracting, but without knowing exactly how UniCredit will deliver the PDF, it's prone to be a very finnicky process.
